@@ -6,7 +6,7 @@ import ExpenseCard, { EditExpenseModal, DeleteConfirmModal } from '../components
 import type { Expense } from '../components/ExpenseCard.tsx';
 import BalanceSummary from '../components/BalanceSummary.tsx';
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
 interface Member {
      id: number;
      username: string;
@@ -19,10 +19,6 @@ interface Group {
      created_at: string;
      members: Member[];
 }
-
-
-
-// â”€â”€ Icon helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const Icon = ({ path, className = 'size-5' }: { path: string; className?: string }) => (
      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -51,7 +47,6 @@ const ICONS = {
      tag: 'M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z',
 };
 
-// â”€â”€ Avatar with initials â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const AVATAR_GRADIENTS = [
      'from-violet-500 to-purple-600',
      'from-indigo-500 to-blue-600',
@@ -75,12 +70,10 @@ const Avatar = ({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' | 'lg'
      );
 };
 
-// â”€â”€ Skeleton loader â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const Skeleton = ({ className }: { className: string }) => (
      <div className={`bg-gray-100 rounded-xl animate-pulse ${className}`} />
 );
 
-// â”€â”€ Expense skeleton row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ExpenseSkeleton = () => (
      <li className="flex items-center gap-4 px-5 py-4 border-b border-gray-50 last:border-0">
           <Skeleton className="w-10 h-10 rounded-xl flex-shrink-0" />
@@ -97,7 +90,6 @@ const ExpenseSkeleton = () => (
 
 // ExpenseRow has been replaced by the ExpenseCard component (imported above)
 
-// â”€â”€ Add Expense Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface AddExpenseModalProps {
      groupId: string;
      onClose: () => void;
@@ -322,7 +314,7 @@ const GroupDetail = () => {
           }
      }, [id]);
 
-     // â”€â”€ Add member â”€â”€
+
      const handleAddMember = async (e: React.FormEvent) => {
           e.preventDefault();
           if (!memberEmail.trim()) return;
@@ -387,7 +379,7 @@ const GroupDetail = () => {
                     <p className="text-sm text-red-400 bg-red-50 border border-red-100 rounded-xl px-4 py-3 mb-4">{error}</p>
                     <button type="button" onClick={() => navigate(-1)}
                          className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow shadow-violet-500/30 hover:opacity-90 transition cursor-pointer">
-                         â† Go Back
+                         Go Back
                     </button>
                </div>
           </div>

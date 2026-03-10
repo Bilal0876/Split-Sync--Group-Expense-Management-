@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header.tsx';
 import { getGroups, createGroup, type Group } from '../services/groupServices';
+import { getDashboardData, type DashboardData } from '../services/userServices';
 
 // ── tiny icon helpers ────────────────────────────────────────────────────────
 const Icon = ({ path, className = 'size-5' }: { path: string; className?: string }) => (
@@ -31,21 +32,6 @@ const GROUP_COLORS = [
   'from-rose-500 to-pink-600',
   'from-amber-500 to-orange-600',
   'from-emerald-500 to-teal-600',
-];
-
-// ── mock data (balances & activity — kept until those features are wired) ────
-const MOCK_BALANCES = [
-  { id: 1, name: 'Sara K.', amount: 84.50, dir: 'owed_to_me' },
-  { id: 2, name: 'James P.', amount: 120.00, dir: 'i_owe' },
-  { id: 3, name: 'Liu W.', amount: 35.25, dir: 'owed_to_me' },
-  { id: 4, name: 'Amara T.', amount: 60.00, dir: 'i_owe' },
-];
-
-const MOCK_ACTIVITY = [
-  { id: 1, desc: 'Hotel booking — Barcelona', group: 'Barcelona Trip', amount: 420.00, date: 'Mar 7', you: true },
-  { id: 2, desc: 'Groceries', group: 'Apartment Shared', amount: 67.30, date: 'Mar 5', you: false, who: 'Sara K.' },
-  { id: 3, desc: 'Team lunch', group: 'Office Lunch Pool', amount: 88.40, date: 'Mar 4', you: true },
-  { id: 4, desc: 'Cab to airport', group: 'Barcelona Trip', amount: 34.00, date: 'Mar 3', you: false, who: 'James P.' },
 ];
 
 // ── stat card ────────────────────────────────────────────────────────────────
@@ -158,6 +144,10 @@ const Dashboard = () => {
   const [groupsError, setGroupsError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
 
+  // ── Dashboard state ──
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+
   useEffect(() => {
     const fetchGroups = async () => {
       setGroupsLoading(true);
@@ -172,17 +162,29 @@ const Dashboard = () => {
         setGroupsLoading(false);
       }
     };
+
+    const fetchDashboard = async () => {
+      setStatsLoading(true);
+      try {
+        const data = await getDashboardData();
+        setDashboardData(data);
+      } catch (err: any) {
+        console.error('Failed to load dashboard data:', err);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
     fetchGroups();
+    fetchDashboard();
   }, []);
 
   const handleGroupCreated = (newGroup: Group) => {
     setGroups((prev) => [newGroup, ...prev]);
   };
 
-  const netBalance = MOCK_BALANCES.reduce((acc, b) =>
-    b.dir === 'owed_to_me' ? acc + b.amount : acc - b.amount, 0);
-
-  const totalMembers = groups.reduce((acc, g) => acc + (g.member_count ?? 0), 0);
+  const netBalance = dashboardData?.netBalance ?? 0;
+  const groupsCount = dashboardData?.groupsCount ?? groups.length;
 
   return (
     <div className="min-h-screen bg-gray-50/60 flex flex-col font-sans">
@@ -216,12 +218,12 @@ const Dashboard = () => {
 
         {/* ── Stat row ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Net Balance" value={`${netBalance >= 0 ? '+' : ''}$${Math.abs(netBalance).toFixed(2)}`}
+          <StatCard label="Net Balance" value={`${netBalance >= 0 ? '+' : '-'}$${Math.abs(netBalance).toFixed(2)}`}
             sub={netBalance >= 0 ? 'Others owe you' : 'You owe others'} icon={ICONS.balance} delay="0.08s" />
-          <StatCard label="Active Groups" value={String(groups.length)}
-            sub={`Across ${totalMembers} members`} icon={ICONS.groups} delay="0.12s" />
-          <StatCard label="This Month" value="$0.00" sub="Total shared expenses" icon={ICONS.activity} delay="0.16s" />
-          <StatCard label="Settled" value="0" sub="Transactions this month" icon={ICONS.check} delay="0.20s" />
+          <StatCard label="Active Groups" value={String(groupsCount)}
+            sub={`Total groups joined`} icon={ICONS.groups} delay="0.12s" />
+          <StatCard label="This Month" value="$0.00" sub="Coming Soon" icon={ICONS.activity} delay="0.16s" />
+          <StatCard label="Settled" value="0" sub="Summarized" icon={ICONS.check} delay="0.20s" />
         </div>
 
         {/* ── Balance quick-view ── */}
@@ -237,20 +239,26 @@ const Dashboard = () => {
               </button>
             </div>
             <ul className="divide-y divide-gray-50">
-              {MOCK_BALANCES.map((b, i) => (
-                <li key={b.id} className="flex items-center justify-between px-5 py-3.5"
-                  style={{ animation: `slideIn 0.4s cubic-bezier(0.16,1,0.3,1) ${0.25 + i * 0.06}s both` }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-100 to-indigo-100 flex items-center justify-center text-violet-600 text-xs font-bold">
-                      {b.name.charAt(0)}
+              {statsLoading ? (
+                <div className="py-8 flex justify-center"><div className="w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" /></div>
+              ) : dashboardData?.summarizedBalances.length === 0 ? (
+                <p className="px-5 py-6 text-xs text-gray-400 text-center font-medium">No outstanding balances!</p>
+              ) : (
+                dashboardData?.summarizedBalances.map((b, i) => (
+                  <li key={b.userId} className="flex items-center justify-between px-5 py-3.5"
+                    style={{ animation: `slideIn 0.4s cubic-bezier(0.16,1,0.3,1) ${0.25 + i * 0.06}s both` }}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-100 to-indigo-100 flex items-center justify-center text-violet-600 text-xs font-bold uppercase">
+                        {b.username.charAt(0)}
+                      </div>
+                      <span className="text-sm font-semibold text-gray-700">{b.username}</span>
                     </div>
-                    <span className="text-sm font-semibold text-gray-700">{b.name}</span>
-                  </div>
-                  <div className={`flex items-center gap-1 text-sm font-bold ${b.dir === 'owed_to_me' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                    ${b.amount.toFixed(2)}
-                  </div>
-                </li>
-              ))}
+                    <div className={`flex items-center gap-1 text-sm font-bold ${b.dir === 'owed_to_me' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                      ${b.amount.toFixed(2)}
+                    </div>
+                  </li>
+                ))
+              )}
             </ul>
           </div>
 
@@ -298,7 +306,8 @@ const Dashboard = () => {
               <ul className="divide-y divide-gray-50">
                 {groups.map((g, i) => (
                   <li key={g.id}
-                    className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/60 transition-colors group"
+                    onClick={() => navigate(`/groups/${g.id}`)}
+                    className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/60 transition-colors group cursor-pointer"
                     style={{ animation: `slideIn 0.4s cubic-bezier(0.16,1,0.3,1) ${0.28 + i * 0.06}s both` }}>
                     <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${GROUP_COLORS[i % GROUP_COLORS.length]} flex items-center justify-center shadow-md flex-shrink-0`}>
                       <Icon path={ICONS.groups} className="size-5 text-white" />
@@ -309,12 +318,9 @@ const Dashboard = () => {
                         {g.member_count ?? 0} {(g.member_count ?? 0) === 1 ? 'member' : 'members'}
                       </p>
                     </div>
-                    <button
-                      onClick={() => navigate(`/groups/${g.id}`)}
-                      className="px-3.5 py-1.5 text-xs font-semibold rounded-lg border border-violet-200 text-violet-600 hover:bg-violet-50 hover:border-violet-300 transition-all cursor-pointer flex-shrink-0"
-                    >
+                    <div className="px-3.5 py-1.5 text-xs font-semibold rounded-lg border border-violet-200 text-violet-600 group-hover:bg-violet-50 group-hover:border-violet-300 transition-all cursor-pointer flex-shrink-0">
                       View
-                    </button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -332,24 +338,32 @@ const Dashboard = () => {
             </button>
           </div>
           <ul className="divide-y divide-gray-50">
-            {MOCK_ACTIVITY.map((a, i) => (
-              <li key={a.id} className="flex items-center gap-4 px-5 py-3.5"
-                style={{ animation: `slideIn 0.4s cubic-bezier(0.16,1,0.3,1) ${0.36 + i * 0.05}s both` }}>
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${a.you ? 'bg-violet-50 text-violet-500' : 'bg-gray-50 text-gray-400'}`}>
-                  <Icon path={ICONS.add} className="size-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-800 truncate">{a.desc}</p>
-                  <p className="text-xs text-gray-400">
-                    {a.you ? 'You paid' : `${a.who} paid`} · {a.group}
-                  </p>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="text-sm font-bold text-gray-700">${a.amount.toFixed(2)}</p>
-                  <p className="text-xs text-gray-400">{a.date}</p>
-                </div>
-              </li>
-            ))}
+            {statsLoading ? (
+              <div className="py-12 flex justify-center"><div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" /></div>
+            ) : dashboardData?.recentActivity.length === 0 ? (
+              <p className="py-12 text-sm text-gray-400 text-center font-medium">No recent activity found.</p>
+            ) : (
+              dashboardData?.recentActivity.map((a, i) => (
+                <li key={`${a.type}-${i}`} className="flex items-center gap-4 px-5 py-3.5 cursor-default hover:bg-gray-50/40 transition-colors"
+                  style={{ animation: `slideIn 0.4s cubic-bezier(0.16,1,0.3,1) ${0.36 + i * 0.05}s both` }}>
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${a.paid_by_id === user?.id ? 'bg-violet-50 text-violet-500' : 'bg-gray-50 text-gray-400'}`}>
+                    <Icon path={a.type === 'expense' ? ICONS.add : ICONS.settle} className="size-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 truncate">{a.title}</p>
+                    <p className="text-xs text-gray-400">
+                      {a.paid_by_id === user?.id ? 'You' : a.paid_by_username} {a.type === 'expense' ? 'paid' : 'settled'} · {a.group_name}
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className={`text-sm font-bold ${a.type === 'settlement' ? 'text-emerald-500' : 'text-gray-700'}`}>${a.amount.toFixed(2)}</p>
+                    <p className="text-[10px] text-gray-400 font-medium">
+                      {new Date(a.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    </p>
+                  </div>
+                </li>
+              ))
+            )}
           </ul>
         </div>
 
