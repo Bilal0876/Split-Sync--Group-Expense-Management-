@@ -13,7 +13,7 @@ router.post(
     '/register', 
     [
         body('name').notEmpty().withMessage('Name is required').trim(),
-        body('email').isEmail().withMessage('Valid email is required').normalizeEmail(),
+        body('email').isEmail().withMessage('Valid email is required').normalizeEmail({ gmail_remove_dots: false }),
         body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
     ],
     handleValidationErrors,
@@ -24,7 +24,7 @@ router.post(
 router.post(
     '/login', 
     [
-        body('email').isEmail().withMessage('Valid email is required').normalizeEmail(),
+        body('email').isEmail().withMessage('Valid email is required').normalizeEmail({ gmail_remove_dots: false }),
         body('password').notEmpty().withMessage('Password is required'),
     ],
     handleValidationErrors,

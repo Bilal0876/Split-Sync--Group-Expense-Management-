@@ -2,30 +2,22 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/authMiddleware.ts';
 import * as GroupModel from '../models/groupModel.ts';
 import { findByemail } from '../models/userModel.ts';
+import asyncHandler from '../utils/asyncHandler.ts';
 
-export const createGroup = async (req: AuthRequest, res: Response) => {
-  try {
+export const createGroup = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { name } = req.body;
     const userId = req.user!.id;
     const group = await GroupModel.createGroup(name, userId);
     res.status(201).json(group);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-};
+});
 
-export const getGroupsByUser = async (req: AuthRequest, res: Response) => {
-  try {
+export const getGroupsByUser = asyncHandler(async (req: AuthRequest, res: Response) => {
     const userId = req.user!.id;
     const groups = await GroupModel.getGroupsByUser(userId);
-    res.json(groups);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-};
+    res.status(200).json(groups);
+});
 
-export const getGroupById = async (req: AuthRequest, res: Response) => {
-  try {
+export const getGroupById = asyncHandler(async (req: AuthRequest, res: Response) => {
     const groupId = parseInt(req.params.groupId as string);
     const userId = req.user!.id;
 
@@ -37,14 +29,10 @@ export const getGroupById = async (req: AuthRequest, res: Response) => {
     const group = await GroupModel.getGroupById(groupId);
     if (!group) return res.status(404).json({ error: "Group not found" });
 
-    res.json(group);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-};
+    res.status(200).json(group);
+});
 
-export const addMember = async (req: AuthRequest, res: Response) => {
-  try {
+export const addMember = asyncHandler(async (req: AuthRequest, res: Response) => {
     const groupId = parseInt(req.params.groupId as string);
     const { email } = req.body;
 
@@ -64,13 +52,9 @@ export const addMember = async (req: AuthRequest, res: Response) => {
       message: "Member added successfully",
       member: { id: user.id, username: user.username, email: user.email },
     });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-};
+});
 
-export const removeMember = async (req: AuthRequest, res: Response) => {
-  try {
+export const removeMember = asyncHandler(async (req: AuthRequest, res: Response) => {
     const groupId = parseInt(req.params.groupId as string);
     const { userId } = req.body;
 
@@ -81,7 +65,4 @@ export const removeMember = async (req: AuthRequest, res: Response) => {
 
     await GroupModel.removeMember(groupId, userId);
     res.status(200).json({ message: "Member removed successfully" });
-  } catch (error: any) {
-    res.status(400).json({ error: error.message });
-  }
-};
+});

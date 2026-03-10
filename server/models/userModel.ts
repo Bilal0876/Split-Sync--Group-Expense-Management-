@@ -13,7 +13,7 @@ export const createUser = async (name: string, email: string, hash: string) => {
 }
 
 export const findByemail = async (email: string) => {
-     const querytext = `Select * from users where email = $1`;
+     const querytext = `SELECT * FROM users WHERE LOWER(email) = LOWER($1)`;
      const values = [email];
      const result = await db.query(querytext, values);
      return result.rows[0];
