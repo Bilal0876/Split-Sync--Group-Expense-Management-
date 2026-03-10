@@ -3,6 +3,7 @@ import ProtectedRoute from './components/ProtectedRoutes';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
 import GroupDetail from './pages/grouptDetail';
+import Settlements from './pages/Settlements';
 
 function App() {
   return (
@@ -26,6 +27,15 @@ function App() {
           element={
             <ProtectedRoute>
               <GroupDetail />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/groups/:id/settlements"
+          element={
+            <ProtectedRoute>
+              <Settlements />
             </ProtectedRoute>
           }
         />

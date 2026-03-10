@@ -4,6 +4,7 @@ import api from '../services/api';
 import Header from '../components/Header.tsx';
 import ExpenseCard, { EditExpenseModal, DeleteConfirmModal } from '../components/ExpenseCard.tsx';
 import type { Expense } from '../components/ExpenseCard.tsx';
+import BalanceSummary from '../components/BalanceSummary.tsx';
 
 // â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface Member {
@@ -21,22 +22,7 @@ interface Group {
 
 
 
-// â”€â”€ Icon helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-interface Transaction {
-     from: { userId: number; username: string };
-     to: { userId: number; username: string };
-     amount: number;
-}
-
-interface Settlement {
-     id: number;
-     sender_id: number;
-     receiver_id: number;
-     amount: string | number;
-     settled_at: string;
-     sender_name: string;
-     receiver_name: string;
-}
+// â”€â”€ Icon helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const Icon = ({ path, className = 'size-5' }: { path: string; className?: string }) => (
      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -304,10 +290,6 @@ const GroupDetail = () => {
      const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
      const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
 
-     // Balances and Settlements
-     const [transactions, setTransactions] = useState<Transaction[]>([]);
-     const [settlements, setSettlements] = useState<Settlement[]>([]);
-     const [balancesLoading, setBalancesLoading] = useState(true);
 
      useEffect(() => {
           if (!id) return;
@@ -333,24 +315,10 @@ const GroupDetail = () => {
                .finally(() => setExpensesLoading(false));
      };
 
-     const fetchBalances = () => {
-          if (!id) return;
-          setBalancesLoading(true);
-          api.get(`/settlements/${id}/balances`)
-               .then(res => {
-                    if (res.data) {
-                         setTransactions(res.data.transactions || []);
-                         setSettlements(res.data.settlements || []);
-                    }
-               })
-               .catch(err => console.error('Failed to load balances:', err))
-               .finally(() => setBalancesLoading(false));
-     };
 
      useEffect(() => {
           if (id) {
                fetchExpenses();
-               fetchBalances();
           }
      }, [id]);
 
@@ -459,7 +427,7 @@ const GroupDetail = () => {
                     <AddExpenseModal
                          groupId={id}
                          onClose={() => setShowExpenseModal(false)}
-                         onSuccess={() => { fetchExpenses(); fetchBalances(); }}
+                         onSuccess={() => { fetchExpenses(); }}
                     />
                )}
 
@@ -468,7 +436,7 @@ const GroupDetail = () => {
                     <EditExpenseModal
                          expense={editingExpense}
                          onClose={() => setEditingExpense(null)}
-                         onSuccess={() => { fetchExpenses(); fetchBalances(); }}
+                         onSuccess={() => { fetchExpenses(); }}
                     />
                )}
 
@@ -477,11 +445,11 @@ const GroupDetail = () => {
                     <DeleteConfirmModal
                          expense={deletingExpense}
                          onClose={() => setDeletingExpense(null)}
-                         onSuccess={() => { fetchExpenses(); fetchBalances(); }}
+                         onSuccess={() => { fetchExpenses(); }}
                     />
                )}
 
-               <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+               <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
                     {/* â”€â”€ Group Hero â”€â”€ */}
                     <div className="relative bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden"
@@ -739,68 +707,16 @@ const GroupDetail = () => {
                                              </span>
                                              Balances
                                         </h3>
-                                        <button type="button" className="text-xs font-semibold px-3 py-1.5 rounded-lg text-violet-500 bg-violet-50 hover:bg-violet-100 transition cursor-pointer flex items-center gap-1">
-                                             <Icon path={ICONS.settle} className="size-3.5" />
-                                             Settle Up
-                                        </button>
                                    </div>
-                                   <div className="px-5 py-4 divide-y divide-gray-50">
-                                        {balancesLoading ? (
-                                             <div className="py-10 flex flex-col items-center justify-center gap-3">
-                                                  <div className="w-8 h-8 border-3 border-purple-100 border-t-purple-500 rounded-full animate-spin" />
-                                                  <p className="text-xs text-gray-400 font-medium">Calculating balances...</p>
-                                             </div>
-                                        ) : transactions.length === 0 ? (
-                                             <div className="py-10 flex flex-col items-center justify-center text-center gap-3">
-                                                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-50 to-fuchsia-50 flex items-center justify-center">
-                                                       <Icon path={ICONS.balance} className="size-8 text-purple-300" />
-                                                  </div>
-                                                  <div>
-                                                       <p className="text-sm font-semibold text-gray-700">All settled up!</p>
-                                                       <p className="text-xs text-gray-400 mt-1">Balances will appear here once expenses are added.</p>
-                                                  </div>
-                                             </div>
-                                        ) : (
-                                             <ul className="space-y-3 py-2">
-                                                  {transactions.map((t, idx) => (
-                                                       <li key={idx} className="flex items-center justify-between group/tx translate-y-2 opacity-0"
-                                                            style={{ animation: `fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) ${0.1 + idx * 0.05}s both` }}>
-                                                            <div className="flex items-center gap-3 min-w-0">
-                                                                 <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0 text-gray-400">
-                                                                      <Icon path={ICONS.user_circle} className="size-4" />
-                                                                 </div>
-                                                                 <div className="min-w-0">
-                                                                      <p className="text-xs font-bold text-gray-800 truncate">
-                                                                           <span className="text-red-500">{t.from.username}</span>
-                                                                           <span className="mx-1.5 text-gray-300 font-normal">owes</span>
-                                                                           <span className="text-emerald-500">{t.to.username}</span>
-                                                                      </p>
-                                                                 </div>
-                                                            </div>
-                                                            <div className="flex items-center gap-3">
-                                                                 <span className="text-sm font-extrabold text-gray-900">${t.amount.toFixed(2)}</span>
-                                                                 <button
-                                                                      onClick={() => {
-                                                                           if (window.confirm(`Mark $${t.amount.toFixed(2)} payment from ${t.from.username} to ${t.to.username} as settled?`)) {
-                                                                                api.post(`/settlements/${id}/record`, {
-                                                                                     senderId: t.from.userId,
-                                                                                     receiverId: t.to.userId,
-                                                                                     amount: t.amount
-                                                                                }).then(() => {
-                                                                                     fetchBalances();
-                                                                                });
-                                                                           }
-                                                                      }}
-                                                                      className="w-7 h-7 rounded-lg bg-gray-50 text-gray-400 hover:bg-emerald-50 hover:text-emerald-500 flex items-center justify-center transition opacity-0 group-hover/tx:opacity-100 cursor-pointer"
-                                                                      title="Mark as settled"
-                                                                 >
-                                                                      <Icon path={ICONS.check} className="size-4" />
-                                                                 </button>
-                                                            </div>
-                                                       </li>
-                                                  ))}
-                                             </ul>
-                                        )}
+                                   <div className="px-5 py-4">
+                                        <BalanceSummary
+                                             groupId={Number(id)}
+                                             onSettled={() => {
+                                                  if (id) {
+                                                       fetchExpenses();
+                                                  }
+                                             }}
+                                        />
                                    </div>
                               </div>
 
