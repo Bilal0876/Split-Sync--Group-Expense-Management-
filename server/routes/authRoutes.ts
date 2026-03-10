@@ -1,22 +1,33 @@
 import express from 'express';
 import { register, login } from '../controllers/authController.ts';
-import { validateFields } from '../middleware/validateMiddleware.ts';
+import { handleValidationErrors } from '../middleware/validateMiddleware.ts';
+import { authRateLimiter } from '../middleware/rateLimiter.ts';
+import { body } from 'express-validator';
 
 const router = express.Router();
 
+router.use(authRateLimiter);
+
 // 1. POST /register
-// Logic: Validate name, email, password -> then run register controller
 router.post(
     '/register', 
-    validateFields(['name', 'email', 'password']), 
+    [
+        body('name').notEmpty().withMessage('Name is required').trim(),
+        body('email').isEmail().withMessage('Valid email is required').normalizeEmail(),
+        body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
+    ],
+    handleValidationErrors,
     register
 );
 
 // 2. POST /login
-// Logic: Validate email, password -> then run login controller
 router.post(
     '/login', 
-    validateFields(['email', 'password']), 
+    [
+        body('email').isEmail().withMessage('Valid email is required').normalizeEmail(),
+        body('password').notEmpty().withMessage('Password is required'),
+    ],
+    handleValidationErrors,
     login
 );
 

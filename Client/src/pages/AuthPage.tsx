@@ -158,7 +158,7 @@ const AuthPage = () => {
       </div>
       <div className='flex-1 flex flex-col justify-center items-center lg:items-start px-6 py-12 lg:px-6 md:px-10'>
         <h1 className="text-4xl md:text-4xl lg:text-5xl xl:text-6xl font-extrabold text-center lg:text-left bg-gradient-to-r from-violet-600 via-purple-500 to-indigo-600 bg-clip-text text-transparent leading-tight">
-          Track Shared Expenses.  <br /> Settle Smarter.  <br />Simplify Spending.
+          Track Shared Expenses.   <br />Simplify Spending. <br /> Settle Smarter.
         </h1>
 
         <p className="text-base md:text-md lg:text-lg xl:text-lg text-gray-500 text-center lg:text-left mt-4">
