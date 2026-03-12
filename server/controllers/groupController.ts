@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/authMiddleware.ts';
 import * as GroupModel from '../models/groupModel.ts';
 import { findByemail } from '../models/userModel.ts';
+import prisma from '../config/prisma.ts';
 import asyncHandler from '../utils/asyncHandler.ts';
 
 export const createGroup = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -35,8 +36,9 @@ export const getGroupById = asyncHandler(async (req: AuthRequest, res: Response)
 export const addMember = asyncHandler(async (req: AuthRequest, res: Response) => {
     const groupId = parseInt(req.params.groupId as string);
     const { email } = req.body;
+    const senderId = req.user!.id;
 
-    const authorized = await GroupModel.isMember(groupId, req.user!.id);
+    const authorized = await GroupModel.isMember(groupId, senderId);
     if (!authorized) {
       return res.status(403).json({ error: "Access denied: You are not a member of this group." });
     }
@@ -53,9 +55,31 @@ export const addMember = asyncHandler(async (req: AuthRequest, res: Response) =>
       return res.status(400).json({ error: "User is already a member of this group." });
     }
 
-    await GroupModel.addMember(groupId, user.id);
+    // Check if invite already exists
+    const existingInvite = await prisma.invitations.findFirst({
+        where: {
+            group_id: groupId,
+            user_id: user.id,
+            status: 'pending'
+        }
+    });
+
+    if (existingInvite) {
+        return res.status(400).json({ error: "An invitation is already pending for this user." });
+    }
+
+    // Create invitation
+    await prisma.invitations.create({
+        data: {
+            group_id: groupId,
+            user_id: user.id,
+            invited_by: senderId,
+            status: 'pending'
+        }
+    });
+
     res.status(200).json({
-      message: "Member added successfully",
+      message: "Invitation sent successfully",
       member: { id: user.id, username: user.username, email: user.email },
     });
 });

@@ -251,6 +251,55 @@ const AddExpenseModal = ({ groupId, onClose, onSuccess }: AddExpenseModalProps) 
      );
 };
 
+interface LeaveGroupModalProps {
+     groupName: string;
+     onClose: () => void;
+     onConfirm: () => void;
+     loading: boolean;
+}
+
+const LeaveGroupModal = ({ groupName, onClose, onConfirm, loading }: LeaveGroupModalProps) => {
+     useEffect(() => {
+          const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+          window.addEventListener('keydown', handler);
+          return () => window.removeEventListener('keydown', handler);
+     }, [onClose]);
+
+     return (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+               style={{ animation: 'backdropIn 0.2s ease both' }}>
+               <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-md" onClick={onClose} />
+               <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl shadow-red-500/10 overflow-hidden"
+                    style={{ animation: 'modalIn 0.3s cubic-bezier(0.16,1,0.3,1) both' }}>
+                    <div className="px-7 py-8 text-center">
+                         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center mx-auto mb-5">
+                              <Icon path={ICONS.leave} className="size-8 text-red-500" />
+                         </div>
+                         <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">Leave Group?</h2>
+                         <p className="text-sm text-gray-400 mt-3 leading-relaxed max-w-xs mx-auto">
+                              Are you sure you want to leave <span className="font-semibold text-gray-600">"{groupName}"</span>?
+                              You will no longer be able to see expenses or balances for this group.
+                         </p>
+
+                         <div className="flex items-center gap-3 mt-8">
+                              <button type="button" onClick={onClose}
+                                   className="flex-1 py-3.5 rounded-xl text-sm font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all cursor-pointer">
+                                   Cancel
+                              </button>
+                              <button type="button" onClick={onConfirm} disabled={loading}
+                                   className="flex-1 py-3.5 rounded-xl text-sm font-bold bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg shadow-red-500/30 hover:opacity-90 hover:-translate-y-px active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2">
+                                   {loading
+                                        ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        : <><Icon path={ICONS.leave} className="size-4" /> Leave Group</>
+                                   }
+                              </button>
+                         </div>
+                    </div>
+               </div>
+          </div>
+     );
+};
+
 //Main Component
 const GroupDetail = () => {
      const { id } = useParams<{ id: string }>();
@@ -277,6 +326,10 @@ const GroupDetail = () => {
      // Edit / Delete expense modals (rendered at page root level)
      const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
      const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
+
+     // Leave group modal
+     const [showLeaveModal, setShowLeaveModal] = useState(false);
+     const [leavingGroup, setLeavingGroup] = useState(false);
 
 
      useEffect(() => {
@@ -326,9 +379,9 @@ const GroupDetail = () => {
           setAddMemberError('');
           setAddMemberSuccess(false);
           try {
-               const res = await api.post(`/groups/${id}/members`, { email });
-               const newMember: Member = res.data.member;
-               setGroup(prev => prev ? { ...prev, members: [...prev.members, newMember] } : prev);
+               await api.post(`/groups/${id}/members`, { email });
+               // Note: We don't add the member to the local state yet!
+               // They are only added once they accept the invitation.
                setMemberEmail('');
                setAddMemberSuccess(true);
                setTimeout(() => setAddMemberSuccess(false), 2500);
@@ -350,13 +403,15 @@ const GroupDetail = () => {
      };
 
      const handleLeaveGroup = async () => {
-          if (!window.confirm("Are you sure you want to leave this group?")) return;
-
+          setLeavingGroup(true);
           try {
                await api.delete(`/groups/${id}/leave`);
                navigate('/dashboard');
           } catch (err: any) {
                alert(err?.response?.data?.error ?? 'Could not leave group.');
+          } finally {
+               setLeavingGroup(false);
+               setShowLeaveModal(false);
           }
      };
 
@@ -441,6 +496,16 @@ const GroupDetail = () => {
                          expense={deletingExpense}
                          onClose={() => setDeletingExpense(null)}
                          onSuccess={() => { fetchExpenses(); }}
+                    />
+               )}
+
+               {/* Leave Group Modal */}
+               {showLeaveModal && group && (
+                    <LeaveGroupModal
+                         groupName={group.name}
+                         onClose={() => setShowLeaveModal(false)}
+                         onConfirm={handleLeaveGroup}
+                         loading={leavingGroup}
                     />
                )}
 
@@ -654,7 +719,7 @@ const GroupDetail = () => {
                                              {addMemberSuccess && (
                                                   <p className="text-xs text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 flex items-center gap-1.5"
                                                        style={{ animation: 'popIn 0.3s cubic-bezier(0.16,1,0.3,1) both' }}>
-                                                       <Icon path={ICONS.check} className="size-4" /> Member added successfully!
+                                                       <Icon path={ICONS.check} className="size-4" /> Invitation sent successfully!
                                                   </p>
                                              )}
                                              <button
@@ -708,7 +773,7 @@ const GroupDetail = () => {
                                                                  type="button"
                                                                  onClick={() => handleRemoveMember(member.id)}
                                                                  title="Remove member"
-                                                                 className="opacity-100 md:opacity-0 md:group-hover:opacity-100 w-7 h-7 rounded-lg hover:bg-red-50 flex items-center justify-center text-gray-400 group-hover:text-red-400 md:text-gray-300 transition-all cursor-pointer">
+                                                                 className=" w-7 h-7 rounded-lg hover:bg-red-50 flex items-center justify-center text-gray-400 group-hover:text-red-400 md:text-gray-300 transition-all cursor-pointer">
                                                                  <Icon path={ICONS.trash} className="size-3.5" />
                                                             </button>
                                                        )}
@@ -721,7 +786,7 @@ const GroupDetail = () => {
                               <div className="space-y-3" style={{ animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.26s both' }}>
                                    <button
                                         type="button"
-                                        onClick={handleLeaveGroup}
+                                        onClick={() => setShowLeaveModal(true)}
                                         className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm bg-red-50 border border-red-100 text-red-500 shadow-sm hover:shadow-md hover:bg-red-100 hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer"
                                    >
                                         <Icon path={ICONS.leave} className="size-4" />

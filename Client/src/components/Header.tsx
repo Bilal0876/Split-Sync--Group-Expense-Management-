@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import NavigationTabs from "../components/NavigationTabs.tsx";
 import UserMenu from "../components/UserMenu.tsx";
 import Logo from "../components/Logo.tsx";
+import NotificationBell from "../components/NotificationBell.tsx";
 import { useAuth } from '../hooks/useAuth';
 
 type HeaderProps = {
@@ -36,7 +37,8 @@ const Header = ({ }: HeaderProps) => {
         </div>
 
 
-        <div className="flex-1 flex items-center justify-end gap-4">
+        <div className="flex-1 flex items-center justify-end gap-2 sm:gap-4">
+          <NotificationBell />
           <UserMenu />
 
 

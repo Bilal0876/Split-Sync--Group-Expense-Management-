@@ -46,6 +46,7 @@ model groups {
   expenses      expenses[]
   group_members group_members[]
   settlements   settlements[]
+  invitations   invitations[]
   creator       users?          @relation("GroupCreator", fields: [created_by], references: [id], onUpdate: NoAction)
 }
 
@@ -73,4 +74,19 @@ model users {
   settlements_settlements_receiver_idTousers settlements[]    @relation("settlements_receiver_idTousers")
   settlements_settlements_sender_idTousers   settlements[]    @relation("settlements_sender_idTousers")
   created_groups                             groups[]         @relation("GroupCreator")
+  sent_invitations                           invitations[]    @relation("InvitationSender")
+  received_invitations                        invitations[]    @relation("InvitationReceiver")
+}
+
+model invitations {
+  id         Int       @id @default(autoincrement())
+  group_id   Int
+  user_id    Int
+  invited_by Int
+  status     String    @default("pending") @db.VarChar(20) // pending, accepted, rejected
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  
+  groups     groups    @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  receiver   users     @relation("InvitationReceiver", fields: [user_id], references: [id], onDelete: Cascade)
+  sender     users     @relation("InvitationSender", fields: [invited_by], references: [id], onDelete: Cascade)
 }

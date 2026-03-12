@@ -7,6 +7,7 @@ import groupRoutes from './routes/groupRoutes.ts';
 import expenseRoutes from './routes/expenseRoutes.ts';
 import settlementRoutes from './routes/settlementRoutes.ts';
 import userRoutes from './routes/userRoutes.ts';
+import invitationRoutes from './routes/invitationRoutes.ts';
 import { errorMiddleware } from './middleware/errorMiddleware.ts';
 
 const app = express();
@@ -28,6 +29,7 @@ app.use('/api/groups', groupRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/settlements', settlementRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/invitations', invitationRoutes);
 
 app.use(errorMiddleware);
 

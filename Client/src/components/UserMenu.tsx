@@ -17,10 +17,6 @@ const UserMenu = () => {
           <div className="hidden sm:flex w-8 h-8 rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-md shadow-violet-500/30">
             {user.name?.charAt(0).toUpperCase()}
           </div>
-
-          <span className="hidden sm:block text-sm font-semibold text-gray-700">
-            {user.name}
-          </span>
         </div>
       )}
 

@@ -43,7 +43,12 @@ const GroupsPage = () => {
         setLoading(false);
       }
     };
+
     fetchGroups();
+
+    // Listen for group added (e.g. from accepted invitation)
+    window.addEventListener('groupAdded', fetchGroups);
+    return () => window.removeEventListener('groupAdded', fetchGroups);
   }, []);
 
   const filteredGroups = groups.filter(g =>
