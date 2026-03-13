@@ -1,27 +1,36 @@
 import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../hooks/useAuth';
 import { getPendingInvitations, respondToInvitation, type Invitation } from '../services/invitationServices';
 
 const NotificationBell = () => {
+    const { user } = useAuth();
     const [invitations, setInvitations] = useState<Invitation[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const fetchInvitations = async () => {
+        if (!user) return;
         try {
             const data = await getPendingInvitations();
             setInvitations(data);
-        } catch (error) {
+        } catch (error: any) {
+            if (error?.response?.status === 401) return; // Silent 401
             console.error('Error fetching invitations:', error);
         }
     };
 
     useEffect(() => {
+        if (!user) {
+            setInvitations([]);
+            return;
+        }
+
         fetchInvitations();
         // Poll every 30 seconds for new invites
         const interval = setInterval(fetchInvitations, 30000);
         return () => clearInterval(interval);
-    }, []);
+    }, [user]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -33,7 +42,7 @@ const NotificationBell = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleAction = async (id: number, action: 'accept' | 'reject') => {
+    const handleAction = async (id: string, action: 'accept' | 'reject') => {
         setLoading(true);
         try {
             await respondToInvitation(id, action);

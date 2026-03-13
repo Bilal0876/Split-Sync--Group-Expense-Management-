@@ -23,18 +23,21 @@ const ActivityPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
+
     const fetchData = async () => {
       try {
         const dashboardData = await getDashboardData();
         setData(dashboardData);
-      } catch (err) {
+      } catch (err: any) {
+        if (err?.response?.status === 401) return; // Silent 401
         console.error('Failed to fetch activity:', err);
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, []);
+  }, [user]);
 
   const groupedTasks = () => {
     if (!data) return {};

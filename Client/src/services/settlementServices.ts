@@ -1,7 +1,7 @@
 import api from './api';
 
 export interface UserInfo {
-  userId: number;
+  userId: string;
   username: string;
 }
 
@@ -12,10 +12,10 @@ export interface SettlementRecommendation {
 }
 
 export interface Settlement {
-  id: number;
-  group_id: number;
-  sender_id: number;
-  receiver_id: number;
+  id: string;
+  group_id: string;
+  sender_id: string;
+  receiver_id: string;
   amount: number;
   settled_at: string;
   sender_name?: string;
@@ -28,16 +28,16 @@ export interface BalancesResponse {
 }
 
 /** Fetch current balances/recommendations for a group */
-export const getBalances = async (groupId: number): Promise<BalancesResponse> => {
+export const getBalances = async (groupId: string): Promise<BalancesResponse> => {
   const response = await api.get<BalancesResponse>(`/settlements/${groupId}/balances`);
   return response.data;
 };
 
 /** Record a new settlement payment */
 export const recordSettlement = async (data: {
-  groupId: number;
-  senderId: number;
-  receiverId: number;
+  groupId: string;
+  senderId: string;
+  receiverId: string;
   amount: number;
 }): Promise<{ message: string; settlement: Settlement }> => {
   const response = await api.post<{ message: string; settlement: Settlement }>(
@@ -52,7 +52,7 @@ export const recordSettlement = async (data: {
 };
 
 /** Fetch settlement history for a group (Note: this is included in getBalances, but keeping for direct access if needed) */
-export const getSettlementHistory = async (groupId: number): Promise<Settlement[]> => {
+export const getSettlementHistory = async (groupId: string): Promise<Settlement[]> => {
   const response = await api.get<BalancesResponse>(`/settlements/${groupId}/balances`);
   return response.data.settlements;
 };

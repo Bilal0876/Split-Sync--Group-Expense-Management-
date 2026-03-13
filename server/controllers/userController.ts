@@ -28,50 +28,69 @@ export const getDashboardData = asyncHandler(async (req: AuthRequest, res: Respo
     startOfMonth.setDate(1);
 
     // 2. Fetch data for Net Balance and Monthly Spending
-    const [totalPaid, totalOwed, totalSent, totalReceived, currentMonthPaid, currentMonthSettled] = await Promise.all([
+    const [totalPaid, totalOwed, totalSent, totalReceived, currentMonthPaid, currentMonthSettled, currentMonthReceived] = await Promise.all([
         prisma.expenses.aggregate({
             _sum: { amount: true },
-            where: { payer_id: userId }
+            where: { payer_id: userId, is_deleted: false }
         }),
         prisma.expense_splits.aggregate({
             _sum: { share: true },
-            where: { user_id: userId }
+            where: { user_id: userId, expenses: { is_deleted: false } }
         }),
         prisma.settlements.aggregate({
             _sum: { amount: true },
-            where: { sender_id: userId }
+            where: { sender_id: userId, is_deleted: false }
         }),
         prisma.settlements.aggregate({
             _sum: { amount: true },
-            where: { receiver_id: userId }
+            where: { receiver_id: userId, is_deleted: false }
         }),
         prisma.expenses.aggregate({
             _sum: { amount: true },
             where: { 
                 payer_id: userId,
-                created_at: { gte: startOfMonth }
+                created_at: { gte: startOfMonth },
+                is_deleted: false 
             }
         }),
         prisma.settlements.aggregate({
             _sum: { amount: true },
             where: { 
                 sender_id: userId,
-                settled_at: { gte: startOfMonth }
+                settled_at: { gte: startOfMonth },
+                is_deleted: false 
+            }
+        }),
+        prisma.settlements.aggregate({
+            _sum: { amount: true },
+            where: { 
+                receiver_id: userId,
+                settled_at: { gte: startOfMonth },
+                is_deleted: false 
             }
         })
     ]);
 
-    const paid = Number(totalPaid._sum.amount || 0);
-    const owed = Number(totalOwed._sum.share || 0);
-    const sent = Number(totalSent._sum.amount || 0);
-    const received = Number(totalReceived._sum.amount || 0);
+    const paid = Number(totalPaid?._sum?.amount || 0);
+    const owed = Number(totalOwed?._sum?.share || 0);
+    const sent = Number(totalSent?._sum?.amount || 0);
+    const received = Number(totalReceived?._sum?.amount || 0);
 
     const netBalance = paid - owed + sent - received;
+
+    const stats = {
+        totalPaid: paid,
+        totalOwed: owed,
+        totalSent: sent,
+        totalReceived: received,
+        netBalance,
+        currentMonthSpend: Number(currentMonthPaid?._sum?.amount || 0) - Number(currentMonthSettled?._sum?.amount || 0) + Number(currentMonthReceived?._sum?.amount || 0)
+    };
 
     // 3. Fetch Recent Activity
     const [latestExpenses, latestSettlements] = await Promise.all([
         prisma.expenses.findMany({
-            where: { group_id: { in: groupIds } },
+            where: { group_id: { in: groupIds }, is_deleted: false },
             take: 5,
             orderBy: { created_at: 'desc' },
             include: {
@@ -80,7 +99,7 @@ export const getDashboardData = asyncHandler(async (req: AuthRequest, res: Respo
             }
         }),
         prisma.settlements.findMany({
-            where: { group_id: { in: groupIds } },
+            where: { group_id: { in: groupIds }, is_deleted: false },
             take: 5,
             orderBy: { settled_at: 'desc' },
             include: {
@@ -91,27 +110,27 @@ export const getDashboardData = asyncHandler(async (req: AuthRequest, res: Respo
     ]);
 
     const recentActivity = [
-        ...latestExpenses.map(e => ({
-            type: 'expense',
+        ...latestExpenses.map((e: any) => ({
+            id: e.id,
+            type: 'expense' as const,
             title: e.description,
             amount: Number(e.amount),
-            created_at: e.created_at,
-            paid_by_username: e.users?.username,
-            paid_by_id: e.payer_id,
-            group_name: e.groups?.name
+            date: e.created_at,
+            user: e.users?.username || 'Unknown',
+            group: e.groups?.name || 'Unknown'
         })),
-        ...latestSettlements.map(s => ({
-            type: 'settlement',
+        ...latestSettlements.map((s: any) => ({
+            id: s.id,
+            type: 'settlement' as const,
             title: 'Settlement',
             amount: Number(s.amount),
-            created_at: s.settled_at,
-            paid_by_username: s.users_settlements_sender_idTousers?.username,
-            paid_by_id: s.sender_id,
-            group_name: s.groups?.name
+            date: s.settled_at,
+            user: s.users_settlements_sender_idTousers?.username || 'Unknown',
+            group: s.groups?.name || 'Unknown'
         }))
-    ].sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime()).slice(0, 5);
+    ].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()).slice(0, 5);
 
-    // 4. Summarized Balances
+    // 4. Calculate Individual Balances for all members of all groups
     const allTransactions: any[] = [];
 
     for (const group of groups) {
@@ -132,7 +151,7 @@ export const getDashboardData = asyncHandler(async (req: AuthRequest, res: Respo
         }
     }
 
-    const finalBalancesMap: Record<number, number> = {};
+    const finalBalancesMap: Record<string, number> = {};
     allTransactions.forEach(tx => {
         if (tx.from.userId === userId) {
             finalBalancesMap[tx.to.userId] = (finalBalancesMap[tx.to.userId] || 0) - tx.amount;
@@ -142,8 +161,7 @@ export const getDashboardData = asyncHandler(async (req: AuthRequest, res: Respo
     });
 
     const finalizedBalances = [];
-    for (const [otherIdStr, net] of Object.entries(finalBalancesMap)) {
-        const otherId = parseInt(otherIdStr);
+    for (const [otherId, net] of Object.entries(finalBalancesMap)) {
         const amount = Math.abs(net);
         if (amount < 0.01) continue;
 
@@ -158,7 +176,7 @@ export const getDashboardData = asyncHandler(async (req: AuthRequest, res: Respo
         });
     }
 
-    const monthlySpentTotal = Number(currentMonthPaid._sum.amount || 0) + Number(currentMonthSettled._sum.amount || 0);
+    const monthlySpentTotal = (Number(currentMonthPaid?._sum?.amount || 0) + Number(currentMonthSettled?._sum?.amount || 0)) - Number(currentMonthReceived?._sum?.amount || 0);
 
     res.status(200).json({
         groupsCount: groups.length,

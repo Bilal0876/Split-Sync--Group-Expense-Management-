@@ -11,16 +11,16 @@ const AuthPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { login, register, token } = useAuth();
+  const { login, register, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (token) {
+    if (user && !authLoading) {
       navigate('/dashboard', { replace: true });
     }
-  }, [token, navigate]);
+  }, [user, authLoading, navigate]);
 
-  if (token) return null;
+  if (user && !authLoading) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +31,21 @@ const AuthPage = () => {
       if (mode === 'login') {
         await login({ email, password });
       } else {
+        // Frontend validation for signup
+        const emailRegex = /^[a-z0-9._%+-]+@gmail\.com$/;
+        if (!emailRegex.test(email.trim().toLowerCase())) {
+          setError('Email must be a valid @gmail.com address.');
+          setLoading(false);
+          return;
+        }
+
+        const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>_\\-])[A-Za-z\d!@#$%^&*(),.?":{}|<>_\\-]{8,}$/;
+        if (!passwordRegex.test(password)) {
+          setError('Password must be at least 8 characters long and include an uppercase letter, a number, and a special character.');
+          setLoading(false);
+          return;
+        }
+
         await register({ name, email, password });
       }
       navigate('/dashboard');

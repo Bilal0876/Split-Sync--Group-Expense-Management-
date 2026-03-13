@@ -1,5 +1,5 @@
 import express from 'express';
-import { register, login } from '../controllers/authController.ts';
+import { register, login, logout } from '../controllers/authController.ts';
 import { handleValidationErrors } from '../middleware/validateMiddleware.ts';
 import { authRateLimiter } from '../middleware/rateLimiter.ts';
 import { body } from 'express-validator';
@@ -30,5 +30,8 @@ router.post(
     handleValidationErrors,
     login
 );
+
+// 3. POST /logout
+router.post('/logout', logout);
 
 export default router;

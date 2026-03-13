@@ -67,6 +67,8 @@ const Dashboard = () => {
   const [statsLoading, setStatsLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
+
     const fetchGroups = async () => {
       setGroupsLoading(true);
       setGroupsError('');
@@ -75,6 +77,7 @@ const Dashboard = () => {
         setGroups(data);
       } catch (err: unknown) {
         const error = err as any;
+        if (error?.response?.status === 401) return; // Silent 401
         setGroupsError(error?.response?.data?.error || 'Failed to load groups.');
       } finally {
         setGroupsLoading(false);
@@ -87,6 +90,7 @@ const Dashboard = () => {
         const data = await getDashboardData();
         setDashboardData(data);
       } catch (err: any) {
+        if (err?.response?.status === 401) return; // Silent 401
         console.error('Failed to load dashboard data:', err);
       } finally {
         setStatsLoading(false);
@@ -95,7 +99,7 @@ const Dashboard = () => {
 
     fetchGroups();
     fetchDashboard();
-  }, []);
+  }, [user]);
 
   const handleGroupCreated = (newGroup: Group) => {
     setGroups((prev) => [newGroup, ...prev]);

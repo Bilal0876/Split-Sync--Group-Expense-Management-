@@ -1,6 +1,6 @@
 import prisma from '../config/prisma.ts';
 
-export const createExpense = async (groupId: number, payerId: number, description: string, amount: number) => {
+export const createExpense = async (groupId: string, payerId: string, description: string, amount: number) => {
      return await prisma.expenses.create({
           data: {
                group_id: groupId,
@@ -13,8 +13,8 @@ export const createExpense = async (groupId: number, payerId: number, descriptio
 
 
 export const createSplits = async (
-     expenseId: number,
-     members: number[],
+     expenseId: string,
+     members: string[],
      totalAmount: number
 ) => {
      return await prisma.$transaction(async (tx) => {
@@ -45,9 +45,12 @@ export const createSplits = async (
 };
 
 
-export const getExpensesByGroup = async (groupId: number) => {
+export const getExpensesByGroup = async (groupId: string) => {
      const res = await prisma.expenses.findMany({
-          where: { group_id: groupId },
+          where: { 
+               group_id: groupId,
+               is_deleted: false
+          },
           include: {
                users: {
                     select: { username: true }
@@ -65,10 +68,10 @@ export const getExpensesByGroup = async (groupId: number) => {
 
 
 export const updateExpense = async (
-     expenseId: number,
+     expenseId: string,
      description: string,
      amount: number,
-     memberIds: number[]
+     memberIds: string[]
 ) => {
      return await prisma.$transaction(async (tx) => {
           // 1. Update the main expense record
@@ -111,11 +114,18 @@ export const updateExpense = async (
 };
 
 
-export const deleteExpense = async (expenseId: number): Promise<boolean> => {
+export const deleteExpense = async (expenseId: string): Promise<boolean> => {
+     const result = await prisma.expenses.update({
+          where: { id: expenseId },
+          data: { is_deleted: true },
+          select: { id: true }
+     });
+/*
      const result = await prisma.expenses.delete({
           where: { id: expenseId },
           select: { id: true }
      });
+*/
 
      return !!result.id;
 };

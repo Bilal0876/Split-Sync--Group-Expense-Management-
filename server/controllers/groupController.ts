@@ -19,7 +19,7 @@ export const getGroupsByUser = asyncHandler(async (req: AuthRequest, res: Respon
 });
 
 export const getGroupById = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const groupId = parseInt(req.params.groupId as string);
+    const groupId = req.params.groupId as string;
     const userId = req.user!.id;
 
     const authorized = await GroupModel.isMember(groupId, userId);
@@ -34,7 +34,7 @@ export const getGroupById = asyncHandler(async (req: AuthRequest, res: Response)
 });
 
 export const addMember = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const groupId = parseInt(req.params.groupId as string);
+    const groupId = req.params.groupId as string;
     const { email } = req.body;
     const senderId = req.user!.id;
 
@@ -85,7 +85,7 @@ export const addMember = asyncHandler(async (req: AuthRequest, res: Response) =>
 });
 
 export const removeMember = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const groupId = parseInt(req.params.groupId as string);
+    const groupId = req.params.groupId as string;
     const { userId } = req.body;
     const currentUserId = req.user!.id;
 
@@ -108,7 +108,7 @@ export const removeMember = asyncHandler(async (req: AuthRequest, res: Response)
 });
 
 export const leaveGroup = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const groupId = parseInt(req.params.groupId as string);
+    const groupId = req.params.groupId as string;
     const userId = req.user!.id;
 
     const result = await GroupModel.leaveGroup(groupId, userId);

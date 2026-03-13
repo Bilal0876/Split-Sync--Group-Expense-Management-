@@ -5,7 +5,11 @@ import { validationResult, body, ValidationChain } from 'express-validator';
 export const handleValidationErrors = (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        console.error(`Validation failed for ${req.method} ${req.path}:`, errors.array());
+        return res.status(400).json({ 
+            error: "Validation Failed", 
+            details: errors.array()
+        });
     }
     next();
 };

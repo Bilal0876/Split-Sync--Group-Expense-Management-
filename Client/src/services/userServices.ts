@@ -9,11 +9,11 @@ export interface DashboardData {
         amount: number;
         created_at: string;
         paid_by_username: string;
-        paid_by_id: number;
+        paid_by_id: string;
         group_name: string;
     }[];
     summarizedBalances: {
-        userId: number;
+        userId: string;
         username: string;
         amount: number;
         dir: 'owed_to_me' | 'i_owe';

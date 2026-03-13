@@ -4,7 +4,7 @@ import { getBalances, recordSettlement } from '../services/settlementServices';
 import type { SettlementRecommendation } from '../services/settlementServices';
 
 interface BalanceSummaryProps {
-  groupId: number;
+  groupId: string;
   onSettled?: () => void;
 }
 
@@ -13,7 +13,7 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({ groupId, onSettled }) =
   const [balances, setBalances] = useState<SettlementRecommendation[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [processing, setProcessing] = useState<number | null>(null);
+  const [processing, setProcessing] = useState<string | number | null>(null);
 
   const fetchBalances = async () => {
     try {

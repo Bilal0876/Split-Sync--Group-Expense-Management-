@@ -5,7 +5,7 @@ import prisma from '../config/prisma.ts';
 
 export interface AuthRequest extends Request {
     user?: {
-        id: number;
+        id: string;
         email: string;
     };
 }
@@ -13,17 +13,16 @@ export interface AuthRequest extends Request {
 const JWT_SECRET = process.env.JWT_SECRET as string;
 
 export const authenticateToken = async (req: AuthRequest, res: Response, next: NextFunction) => {
-
     
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    console.log('Incoming request cookies:', req.cookies);
+    const token = req.cookies?.token;
 
     if (!token) {
         return res.status(401).json({ message: "Access denied. No token provided." });
     }
 
     try {
-        const decoded = jwt.verify(token, JWT_SECRET) as { id: number; email: string };
+        const decoded = jwt.verify(token, JWT_SECRET) as { id: string; email: string };
 
         // Robustness check: Ensure user still exists in DB (e.g. after a reset)
         const userExists = await prisma.users.findUnique({

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 import Header from '../components/Header.tsx';
 import ExpenseCard, { EditExpenseModal, DeleteConfirmModal } from '../components/ExpenseCard.tsx';
@@ -8,17 +9,17 @@ import BalanceSummary from '../components/BalanceSummary.tsx';
 
 
 interface Member {
-     id: number;
+     id: string;
      username: string;
      email: string;
 }
 
 interface Group {
-     id: number;
+     id: string;
      name: string;
      created_at: string;
      members: Member[];
-     created_by: number | null;
+     created_by: string | null;
 }
 
 const Icon = ({ path, className = 'size-5' }: { path: string; className?: string }) => (
@@ -332,19 +333,24 @@ const GroupDetail = () => {
      const [leavingGroup, setLeavingGroup] = useState(false);
 
 
+     const { user } = useAuth();
+
      useEffect(() => {
-          if (!id) return;
+          if (!id || !user) return;
           setLoading(true);
           setError('');
           api.get(`/groups/${id}`)
                .then(res => setGroup(res.data))
-               .catch(err => setError(err?.response?.data?.error ?? 'Failed to load group.'))
+               .catch(err => {
+                   if (err?.response?.status === 401) return; // Silent 401 during logout
+                   setError(err?.response?.data?.error ?? 'Failed to load group.');
+               })
                .finally(() => setLoading(false));
-     }, [id]);
+     }, [id, user]);
 
      // Fetch expenses
-     const fetchExpenses = () => {
-          if (!id) return;
+      const fetchExpenses = () => {
+           if (!id || !user) return;
           setExpensesLoading(true);
           setExpensesError('');
           api.get(`/groups/${id}/expenses`)
@@ -357,11 +363,11 @@ const GroupDetail = () => {
      };
 
 
-     useEffect(() => {
-          if (id) {
-               fetchExpenses();
-          }
-     }, [id]);
+      useEffect(() => {
+           if (id && user) {
+                fetchExpenses();
+           }
+      }, [id, user]);
 
 
      const handleAddMember = async (e: React.FormEvent) => {
@@ -393,7 +399,7 @@ const GroupDetail = () => {
      };
 
      // Remove member
-     const handleRemoveMember = async (memberId: number) => {
+     const handleRemoveMember = async (memberId: string) => {
           try {
                await api.delete(`/groups/${id}/members`, { data: { userId: memberId } });
                setGroup(prev => prev ? { ...prev, members: prev.members.filter(m => m.id !== memberId) } : prev);
@@ -669,7 +675,7 @@ const GroupDetail = () => {
 
                                    <div className="px-5 py-3">
                                         <BalanceSummary
-                                             groupId={Number(id)}
+                                             groupId={id || ''}
                                              onSettled={() => {
                                                   if (id) {
                                                        fetchExpenses();

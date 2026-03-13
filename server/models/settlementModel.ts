@@ -1,6 +1,6 @@
 import prisma from '../config/prisma.ts';
 
-export const recordSettlement = async (groupId: number, senderId: number, receiverId: number, amount: number) => {
+export const recordSettlement = async (groupId: string, senderId: string, receiverId: string, amount: number) => {
     return await prisma.settlements.create({
         data: {
             group_id: groupId,
@@ -11,9 +11,12 @@ export const recordSettlement = async (groupId: number, senderId: number, receiv
     });
 };
 
-export const getSettlements = async (groupId: number) => {
+export const getSettlements = async (groupId: string) => {
     const settlements = await prisma.settlements.findMany({
-        where: { group_id: groupId },
+        where: { 
+            group_id: groupId,
+            is_deleted: false
+        } as any,
         include: {
             users_settlements_sender_idTousers: { select: { username: true } },
             users_settlements_receiver_idTousers: { select: { username: true } },

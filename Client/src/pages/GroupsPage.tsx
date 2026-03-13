@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import Header from '../components/Header.tsx';
 import CreateGroupModal from '../components/CreateGroupModal.tsx';
 import { getGroups, type Group } from '../services/groupServices';
@@ -26,6 +27,7 @@ const GROUP_COLORS = [
 ];
 
 const GroupsPage = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,11 +35,14 @@ const GroupsPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
+    if (!user) return;
+
     const fetchGroups = async () => {
       try {
         const data = await getGroups();
         setGroups(data);
-      } catch (err) {
+      } catch (err: any) {
+        if (err?.response?.status === 401) return; // Silent 401
         console.error('Failed to load groups:', err);
       } finally {
         setLoading(false);
@@ -49,7 +54,7 @@ const GroupsPage = () => {
     // Listen for group added (e.g. from accepted invitation)
     window.addEventListener('groupAdded', fetchGroups);
     return () => window.removeEventListener('groupAdded', fetchGroups);
-  }, []);
+  }, [user]);
 
   const filteredGroups = groups.filter(g =>
     g.name.toLowerCase().includes(search.toLowerCase())

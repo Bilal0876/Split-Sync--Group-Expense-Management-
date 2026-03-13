@@ -15,7 +15,7 @@ router.use(authenticateToken);
 router.post(
     '/send',
     [
-        body('groupId').isInt(),
+        body('groupId').isUUID(),
         body('email').isEmail().normalizeEmail({ gmail_remove_dots: false })
     ],
     handleValidationErrors,
@@ -27,7 +27,7 @@ router.get('/pending', getPendingInvitations);
 router.post(
     '/respond',
     [
-        body('invitationId').isInt(),
+        body('invitationId').isUUID(),
         body('action').isIn(['accept', 'reject'])
     ],
     handleValidationErrors,

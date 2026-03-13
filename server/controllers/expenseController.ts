@@ -16,8 +16,8 @@ export const createExpense = asyncHandler(async (req: any, res: any) => {
           return res.status(400).json({ error: "Missing required fields" });
      }
 
-     const gId = Number(groupId);
-     const pId = Number(payerId);
+     const gId = groupId as string;
+     const pId = payerId as string;
 
      const isMember = await GroupModel.isMember(gId, pId);
      if (!isMember) {
@@ -44,7 +44,7 @@ export const createExpense = asyncHandler(async (req: any, res: any) => {
           const baseShare = Math.floor((amount / count) * 100) / 100;
           const remainder = Math.round((amount - (baseShare * count)) * 100) / 100;
 
-          const splitPromises = members.map((memberId: number, i: number) => {
+          const splitPromises = members.map((memberId: string, i: number) => {
                const finalShare = (i === 0) ? (baseShare + remainder) : baseShare;
                return tx.expense_splits.create({
                     data: {
@@ -74,7 +74,7 @@ export const createExpense = asyncHandler(async (req: any, res: any) => {
 export const getExpensesByGroup = asyncHandler(async (req: any, res: any) => {
      const { groupId } = req.params;
      const userId = req.user.id;
-     const gId = Number(groupId);
+     const gId = groupId as string;
 
      const isMember = await GroupModel.isMember(gId, userId);
      if (!isMember) {
@@ -82,7 +82,10 @@ export const getExpensesByGroup = asyncHandler(async (req: any, res: any) => {
      }
 
      const expenses = await prisma.expenses.findMany({
-          where: { group_id: gId },
+          where: { 
+               group_id: gId,
+               is_deleted: false
+          } as any,
           include: {
                users: { select: { username: true } },
                _count: { select: { expense_splits: true } }
@@ -90,14 +93,14 @@ export const getExpensesByGroup = asyncHandler(async (req: any, res: any) => {
           orderBy: { created_at: 'desc' }
      });
 
-     const formattedExpenses = expenses.map(e => ({
+     const formattedExpenses = expenses.map((e: any) => ({
           id: e.id,
           title: e.description,
           amount: e.amount,
           paid_by: e.payer_id,
           paid_by_username: e.users?.username,
           created_at: e.created_at,
-          split_count: e._count.expense_splits
+          split_count: e._count?.expense_splits || 0
      }));
 
      res.status(200).json(formattedExpenses);
@@ -107,7 +110,7 @@ export const updateExpense = asyncHandler(async (req: any, res: any) => {
      const { id } = req.params;
      const { description, amount } = req.body;
      const userId = req.user.id;
-     const expenseId = Number(id);
+     const expenseId = id as string;
 
      const expense = await prisma.expenses.findUnique({
           where: { id: expenseId },
@@ -134,7 +137,7 @@ export const updateExpense = asyncHandler(async (req: any, res: any) => {
 export const deleteExpense = asyncHandler(async (req: any, res: any) => {
      const { id } = req.params;
      const userId = req.user.id;
-     const expenseId = Number(id);
+     const expenseId = id as string;
 
      const expense = await prisma.expenses.findUnique({
           where: { id: expenseId },

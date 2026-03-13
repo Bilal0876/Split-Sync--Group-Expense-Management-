@@ -14,7 +14,7 @@ export const errorMiddleware = (
     }
 
     res.status(statusCode).json({
-        error: err.message || 'Internal Server Error',
+        message: err.message || 'Internal Server Error',
         stack: process.env.NODE_ENV === 'production' ? null : err.stack,
     });
 };

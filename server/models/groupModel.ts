@@ -1,20 +1,20 @@
 import prisma from '../config/prisma.ts';
 
 export interface Group {
-  id: number;
+  id: string;
   name: string;
   created_at: Date;
-  created_by: number | null;
+  created_by: string | null;
 }
 
-export const createGroup = async (name: string, userId: number) => {
+export const createGroup = async (name: string, userId: string) => {
   return await prisma.$transaction(async (tx) => {
     // 1. Insert into groups
     const newGroup = await tx.groups.create({
       data: { 
         name: name,
         created_by: userId
-      } as any
+      }
     });
 
     // 2. Insert creator into group_members
@@ -30,12 +30,13 @@ export const createGroup = async (name: string, userId: number) => {
 };
 
 
-export const getGroupsByUser = async (userId: number) => {
+export const getGroupsByUser = async (userId: string) => {
   const userGroups = await prisma.groups.findMany({
     where: {
       group_members: {
         some: { user_id: userId }
-      }
+      },
+      is_deleted: false
     },
     include: {
       _count: {
@@ -44,16 +45,19 @@ export const getGroupsByUser = async (userId: number) => {
     }
   });
 
-  return userGroups.map(g => ({
+  return userGroups.map((g: any) => ({
     ...g,
-    member_count: g._count.group_members
+    member_count: g._count?.group_members || 0
   }));
 };
 
 
-export const getGroupById = async (groupId: number) => {
+export const getGroupById = async (groupId: string) => {
   const group = await prisma.groups.findUnique({
-    where: { id: groupId },
+    where: { 
+      id: groupId,
+      is_deleted: false 
+    },
     include: {
       group_members: {
         include: {
@@ -80,7 +84,7 @@ export const getGroupById = async (groupId: number) => {
 };
 
 
-export const addMember = async (groupId: number, userId: number) => {
+export const addMember = async (groupId: string, userId: string) => {
   await prisma.group_members.upsert({
     where: {
       group_id_user_id: {
@@ -97,7 +101,7 @@ export const addMember = async (groupId: number, userId: number) => {
 };
 
 
-export const removeMember = async (groupId: number, userId: number) => {
+export const removeMember = async (groupId: string, userId: string) => {
   return await prisma.$transaction(async (tx) => {
     const memberCount = await tx.group_members.count({
       where: { group_id: groupId }
@@ -121,7 +125,7 @@ export const removeMember = async (groupId: number, userId: number) => {
 };
 
 
-export const leaveGroup = async (groupId: number, userId: number) => {
+export const leaveGroup = async (groupId: string, userId: string) => {
   return await prisma.$transaction(async (tx) => {
     // 1. Remove the user from the group
     const deleteRes = await tx.group_members.deleteMany({
@@ -142,9 +146,15 @@ export const leaveGroup = async (groupId: number, userId: number) => {
 
     // 3. If no members left, delete the group
     if (memberCount === 0) {
+      await tx.groups.update({
+        where: { id: groupId },
+        data: { is_deleted: true } as any
+      });
+      /*
       await tx.groups.delete({
         where: { id: groupId }
       });
+      */
     }
 
     return { groupDeleted: memberCount === 0 };
@@ -152,7 +162,7 @@ export const leaveGroup = async (groupId: number, userId: number) => {
 };
 
 
-export const isMember = async (groupId: number, userId: number): Promise<boolean> => {
+export const isMember = async (groupId: string, userId: string): Promise<boolean> => {
   const count = await prisma.group_members.count({
     where: {
       group_id: groupId,

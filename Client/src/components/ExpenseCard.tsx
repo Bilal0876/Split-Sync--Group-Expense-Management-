@@ -3,10 +3,10 @@ import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 
 export interface Expense {
-     id: number;
+     id: string;
      title: string;
      amount: string | number;
-     paid_by: number;
+     paid_by: string;
      paid_by_username: string;
      created_at: string;
      split_count?: number;

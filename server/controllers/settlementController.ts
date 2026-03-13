@@ -7,7 +7,7 @@ import asyncHandler from '../utils/asyncHandler.ts';
 
 export const getBalances = asyncHandler(async (req: any, res: any) => {
     const { groupId } = req.params;
-    const gId = Number(groupId);
+    const gId = groupId as string;
 
     // 1. Fetch data
     const groupData = await GroupModel.getGroupById(gId);
@@ -45,9 +45,9 @@ export const recordSettlement = asyncHandler(async (req: any, res: any) => {
     }
 
     const settlement = await SettlementModel.recordSettlement(
-        Number(groupId),
-        Number(senderId),
-        Number(receiverId),
+        groupId as string,
+        senderId as string,
+        receiverId as string,
         Number(amount)
     );
 

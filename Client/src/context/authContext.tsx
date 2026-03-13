@@ -1,20 +1,20 @@
 import { createContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { login as loginApi, register as registerApi } from '../services/authServices';
+import api from '../services/api';
 
 interface User {
-    id: number;
+    id: string;
     name: string;
     email: string;
 }
 
 interface AuthContextType {
     user: User | null;
-    token: string | null;
     loading: boolean;
     login: (data: object) => Promise<void>;
     register: (data: object) => Promise<void>;
-    logout: () => void;
+    logout: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,15 +24,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const savedUser = localStorage.getItem('user');
         return savedUser ? JSON.parse(savedUser) : null;
     });
-    const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const savedToken = localStorage.getItem('token');
         const savedUser = localStorage.getItem('user');
-        if (savedToken) {
-            setToken(savedToken);
-        }
         if (savedUser) {
             setUser(JSON.parse(savedUser));
         }
@@ -42,28 +37,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const login = async (data: object) => {
         const res = await loginApi(data);
         setUser(res.user);
-        setToken(res.token);
-        localStorage.setItem('token', res.token);
         localStorage.setItem('user', JSON.stringify(res.user));
     };
 
     const register = async (data: object) => {
         const res = await registerApi(data);
         setUser(res.user);
-        setToken(res.token);
-        localStorage.setItem('token', res.token);
         localStorage.setItem('user', JSON.stringify(res.user));
     };
 
-    const logout = () => {
+    const logout = async () => {
+        // 1. Decisively clear state immediately to trigger redirect and stop background UI activity
         setUser(null);
-        setToken(null);
-        localStorage.removeItem('token');
         localStorage.removeItem('user');
+
+        // 2. Notify backend (silently, as we don't want to block the UI or show errors if it fails)
+        try {
+            await api.post('/auth/logout');
+        } catch (error) {
+            console.warn('Logout notification failed (expected if already unauthorized):', error);
+        }
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+        <AuthContext.Provider value={{ user, loading, login, register, logout }}>
             {children}
         </AuthContext.Provider>
     );

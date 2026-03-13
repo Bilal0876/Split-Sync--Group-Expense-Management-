@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import Header from '../components/Header';
 import { getSettlementHistory } from '../services/settlementServices';
 import type { Settlement } from '../services/settlementServices';
 
 const Settlements: React.FC = () => {
+  const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [history, setHistory] = useState<Settlement[]>([]);
@@ -12,14 +14,16 @@ const Settlements: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!id || !user) return;
+
     const fetchHistory = async () => {
-      if (!id) return;
       try {
         setLoading(true);
-        const data = await getSettlementHistory(Number(id));
+        const data = await getSettlementHistory(id);
         setHistory(data);
         setError(null);
-      } catch (err) {
+      } catch (err: any) {
+        if (err?.response?.status === 401) return; // Silent 401
         console.error('Error fetching settlement history:', err);
         setError('Failed to load settlement history.');
       } finally {
@@ -28,7 +32,7 @@ const Settlements: React.FC = () => {
     };
 
     fetchHistory();
-  }, [id]);
+  }, [id, user]);
 
   if (loading) {
     return (

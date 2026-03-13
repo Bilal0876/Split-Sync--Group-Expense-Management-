@@ -12,8 +12,8 @@ router.use(authenticateToken);
 router.post(
     '/', 
     [
-        body('groupId').isInt(),
-        body('payerId').isInt().optional(), // Often taken from auth
+        body('groupId').isUUID(),
+        body('payerId').isUUID().optional(), // Often taken from auth
         body('description').notEmpty().withMessage('Description is required').trim(),
         body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be greater than 0')
     ],
@@ -24,7 +24,7 @@ router.post(
 // READ (Group View)
 router.get(
     '/group/:groupId', 
-    [param('groupId').isInt()],
+    [param('groupId').isUUID()],
     handleValidationErrors,
     ExpenseController.getExpensesByGroup
 );
@@ -33,7 +33,7 @@ router.get(
 router.put(
     '/:id', 
     [
-        param('id').isInt(),
+        param('id').isUUID(),
         body('description').notEmpty().withMessage('Description is required').trim(),
         body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be greater than 0')
     ],
@@ -44,7 +44,7 @@ router.put(
 // DELETE
 router.delete(
     '/:id', 
-    [param('id').isInt()],
+    [param('id').isUUID()],
     handleValidationErrors,
     ExpenseController.deleteExpense
 );

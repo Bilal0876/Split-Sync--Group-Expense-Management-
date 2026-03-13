@@ -1,7 +1,7 @@
 import prisma from '../config/prisma.ts';
 
 export interface User {
-     id: number;
+     id: string;
      username: string;
      email: string;
 }
@@ -27,8 +27,8 @@ export const findByemail = async (email: string) => {
                email: {
                     equals: email,
                     mode: 'insensitive'
-               }
-          }
+               },
+               is_deleted: false
+          } as any
      });
 }
-

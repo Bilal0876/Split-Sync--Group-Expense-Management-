@@ -11,7 +11,7 @@ router.use(authenticateToken);
 // GET /api/settlements/:groupId/balances
 router.get(
     '/:groupId/balances', 
-    [param('groupId').isInt()],
+    [param('groupId').isUUID()],
     handleValidationErrors,
     SettlementController.getBalances
 );
@@ -20,9 +20,9 @@ router.get(
 router.post(
     '/:groupId/record', 
     [
-        param('groupId').isInt(),
-        body('senderId').isInt(),
-        body('receiverId').isInt(),
+        param('groupId').isUUID(),
+        body('senderId').isUUID(),
+        body('receiverId').isUUID(),
         body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be greater than 0')
     ],
     handleValidationErrors,

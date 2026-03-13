@@ -1,18 +1,18 @@
 interface UserBalance {
-    userId: number;
+    userId: string;
     username: string;
     balance: number;
 }
 
 interface Transaction {
-    from: { userId: number; username: string };
-    to: { userId: number; username: string };
+    from: { userId: string; username: string };
+    to: { userId: string; username: string };
     amount: number;
 }
 
 export const calculateBalancesFromData = (expenses: any[], splits: any[], members: any[], settlements: any[] = []) => {
-    const userBalances: Record<number, number> = {};
-    const userIdToName: Record<number, string> = {};
+    const userBalances: Record<string, number> = {};
+    const userIdToName: Record<string, string> = {};
 
     members.forEach(m => {
         userBalances[m.id] = 0;
@@ -59,8 +59,7 @@ export const calculateBalancesFromData = (expenses: any[], splits: any[], member
     const creditors: UserBalance[] = [];
     const debtors: UserBalance[] = [];
 
-    Object.keys(userBalances).forEach(uidStr => {
-        const uid = parseInt(uidStr);
+    Object.keys(userBalances).forEach(uid => {
         const bal = Math.round(userBalances[uid] * 100) / 100;
         if (bal > 0) {
             creditors.push({ userId: uid, username: userIdToName[uid], balance: bal });
